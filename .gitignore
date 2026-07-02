@@ -1,0 +1,80 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.ipynb_checkpoints/
+
+# Environments
+.env
+.venv/
+venv/
+conda-env/
+*.egg-info/
+
+# Logs
+logs/
+wandb/
+tensorboard/
+*.log
+
+# Checkpoints / model weights
+checkpoints/
+outputs/
+runs/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.bin
+
+# Datasets
+data/
+datasets/
+*.hdf5
+*.h5
+*.pkl
+
+# System
+.DS_Store
+
+cat >> .gitignore <<'EOF'
+
+# Python/cache
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Logs/checkpoints
+wandb/
+logs/
+outputs/
+checkpoints/
+runs/
+*.log
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.bin
+
+# Data
+data/
+datasets/
+
+# System
+.DS_Store
+EOF
+
+# Excluded local repositories / large folders
+/LIBERO/
+/verl/
+/openvla-oft/
+
+# Excluded local repos / large folders
+/LIBERO/
+/verl/
+/openvla-oft/
+
+# IDE
+/.idea/
