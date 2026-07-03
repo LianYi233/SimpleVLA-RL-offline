@@ -7,15 +7,15 @@ export TOKENIZERS_PARALLELISM="${TOKENIZERS_PARALLELISM:-true}"
 export MUJOCO_GL="${MUJOCO_GL:-egl}"
 export PYOPENGL_PLATFORM="${PYOPENGL_PLATFORM:-egl}"
 export LIBERO_CONFIG_PATH="${LIBERO_CONFIG_PATH:-$HOME/.libero}"
-export LIBERO_ROOT="${LIBERO_ROOT:-/root/autodl-tmp/LIBERO}"
+export LIBERO_ROOT="${LIBERO_ROOT:/data2/wyn/datasets/libero/}"
 export PYTHONPATH="${LIBERO_ROOT}:${PYTHONPATH:-}"
 export ROBOT_PLATFORM=LIBERO
 
-PROJECT_NAME="${PROJECT_NAME:-VLA-RL}"               # 项目名
+PROJECT_NAME="${PROJECT_NAME:-Offline-VLA-RL}"               # 项目名
 EXPERIMENT_NAME="${EXPERIMENT_NAME:-openvla_oft_libero_object_all_rl_2gpu_grpo}"    # 实验名
 # For openvla-oft Libero-Long traj1 SFT or traj all SFT models can be find in https://huggingface.co/collections/Haozhan72/simplevla-rl-6833311430cd9df52aeb1f86
-SFT_MODEL_PATH="${SFT_MODEL_PATH:-/root/autodl-tmp/models/Openvla-oft-SFT-libero-object-trajall}"   # 模型路径
-CKPT_PATH="${CKPT_PATH:-/root/autodl-tmp/checkpoints}"              # ckpt保存路径
+SFT_MODEL_PATH="${SFT_MODEL_PATH:-/data2/wyn/models/Openvla-oft-SFT-libero-object-trajall}"   # 模型路径
+CKPT_PATH="${CKPT_PATH:-/data2/wyn/chkpt/2604-VLA_RL_offline}"              # ckpt保存路径
 # DATASET_NAME can be libero_10 (libero_Long), libero_90, libero_spatial, libero_object, libero_goal
 DATASET_NAME="${DATASET_NAME:-libero_object}"        # libero数据集选择
 VLA_NAME="${VLA_NAME:-openvla-oft}"                  # 所依赖VLA模型名称

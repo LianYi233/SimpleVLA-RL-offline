@@ -68,7 +68,7 @@ EOF
 
 # Excluded local repositories / large folders
 /LIBERO/
-/verl/
+#/verl/
 /openvla-oft/
 
 # Excluded local repos / large folders
@@ -78,3 +78,5 @@ EOF
 
 # IDE
 /.idea/
+verl-bak/
+/verl-bak/
