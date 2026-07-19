@@ -7,9 +7,11 @@ export TOKENIZERS_PARALLELISM="${TOKENIZERS_PARALLELISM:-true}"
 export MUJOCO_GL="${MUJOCO_GL:-egl}"
 export PYOPENGL_PLATFORM="${PYOPENGL_PLATFORM:-egl}"
 export LIBERO_CONFIG_PATH="${LIBERO_CONFIG_PATH:-$HOME/.libero}"
-export LIBERO_ROOT="${LIBERO_ROOT:-/root/autodl-tmp/LIBERO}"
-export PYTHONPATH="${LIBERO_ROOT}:${PYTHONPATH:-}"
+export LIBERO_DATASETS_ROOT="${LIBERO_DATASETS_ROOT:-/root/autodl-tmp/datasets/LIBERO}"
+export LIBERO_ROOT="${LIBERO_ROOT:-/root/2604-VLA_RL_offline/SimpleVLA_RL_Offline-main/LIBERO}"
+export PYTHONPATH="/root/2604-VLA_RL_offline/SimpleVLA_RL_Offline-main:${LIBERO_ROOT}:${PYTHONPATH:-}"
 export ROBOT_PLATFORM=LIBERO
+export RUNTIME_ENV_PATH="${RUNTIME_ENV_PATH:-src/.runtime_env.libero.json}"
 
 PROJECT_NAME="${PROJECT_NAME:-Offline-VLA-RL}"               # 项目名
 EXPERIMENT_NAME="${EXPERIMENT_NAME:-openvla_oft_libero_10_rl_2gpu_grpo}"    # 实验名
@@ -24,7 +26,14 @@ NUM_GPUS="${NUM_GPUS:-2}"                            # 使用的GPU数量
 NUM_NODES="${NUM_NODES:-1}"                          # 使用的节点数量
 WANDB_MODE="${WANDB_MODE:-disabled}"                 # wandb模式，disabled表示不使用wandb
 ALIGN_PATH=".${ALIGN_PATH:-/align.json}"
-bash examples/overwrite_vla_ckpt_utils.sh $SFT_MODEL_PATH 
+
+# Configure LIBERO dataset/code paths before training.
+python3 scripts/setup_libero_config.py \
+    --datasets-root "$LIBERO_DATASETS_ROOT" \
+    --libero-repo "$LIBERO_ROOT" \
+    --config-path "$LIBERO_CONFIG_PATH"
+
+bash examples/overwrite_vla_ckpt_utils.sh $SFT_MODEL_PATH
 
 export TENSORBOARD_DIR="tensorboard_log/$PROJECT_NAME/$EXPERIMENT_NAME"
 
