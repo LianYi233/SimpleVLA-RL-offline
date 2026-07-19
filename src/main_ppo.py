@@ -105,7 +105,10 @@ class RobRewardManager():
         completes = data.batch['complete'].tolist()
         batch_size = data.batch['responses'].size(0)
         assert len(completes) == batch_size
-        score = [float(item) for item in completes]
+        if 'match_rewards' in data.batch:
+            score = data.batch['match_rewards'].cpu().numpy().tolist()
+        else:
+            score = [float(item) for item in completes]
         format = [1.0 for _ in range(len(completes))]
 
         data.batch['acc'] = torch.tensor(score, dtype=torch.float32, device=data.batch['responses'].device)

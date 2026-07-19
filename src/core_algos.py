@@ -168,16 +168,17 @@ def compute_remax_outcome_advantage(token_level_rewards: torch.Tensor, reward_ba
 
     return advantages, returns
 
-def get_score_mean_std(id2score):
+def get_score_mean_std(id2score, min_std=0.1):
     id2mean = {}
     id2std = {}
     for idx in id2score:
         if len(id2score[idx]) == 1:
             id2mean[idx] = torch.tensor(0.0)
             id2std[idx] = torch.tensor(1.0)
-        elif len(id2score[idx]) > 1:               
-            id2mean[idx] = torch.mean(torch.tensor(id2score[idx]))
-            id2std[idx] = torch.std(torch.tensor([id2score[idx]]))
+        elif len(id2score[idx]) > 1:
+            scores = torch.tensor(id2score[idx], dtype=torch.float32)
+            id2mean[idx] = scores.mean()
+            id2std[idx] = scores.std().clamp(min=min_std)
         else:
             raise ValueError(f"no score in prompt index: {idx}")
     return id2mean, id2std
@@ -236,7 +237,8 @@ def compute_mix_grpo_outcome_advantage(token_level_rewards: torch.Tensor,
 def compute_grpo_outcome_advantage(token_level_rewards: torch.Tensor,
                                    eos_mask: torch.Tensor,
                                    index: torch.Tensor,
-                                   epsilon: float = 1e-6):
+                                   epsilon: float = 1e-6,
+                                   grpo_min_std: float = 0.1):
     """
     Compute advantage for GRPO, operating only on Outcome reward 
     (with only one scalar reward for each response).
@@ -261,12 +263,11 @@ def compute_grpo_outcome_advantage(token_level_rewards: torch.Tensor,
     with torch.no_grad():
         bsz = scores.shape[0]
         for i in range(bsz):
-            id2score[index[i]].append(scores[i])                         
-        id2mean, id2std = get_score_mean_std(id2score)
+            id2score[index[i]].append(scores[i])
+        id2mean, id2std = get_score_mean_std(id2score, min_std=grpo_min_std)
 
         for i in range(bsz):
             scores[i] = (scores[i] - id2mean[index[i]]) / (id2std[index[i]] + epsilon)
-            # scores[i] = scores[i] - id2mean[index[i]]
 
         scores = scores.unsqueeze(-1).tile([1, response_length]) * eos_mask
 

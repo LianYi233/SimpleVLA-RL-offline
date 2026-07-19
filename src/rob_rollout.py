@@ -447,58 +447,74 @@ def trajectory_deltas(action_chunks):
         return cumulative.squeeze(0)
     return cumulative
 
-def check_action_match(pred, gt, step):
-    chunk_len = pred.shape[0] 
+def check_action_match(pred, gt, step, action_std=None, match_tolerance=2):
+    """Score a predicted action chunk against expert trajectory windows.
+
+    Returns a continuous reward in roughly [0, 1.5] so GRPO always receives
+    non-zero variance within a prompt group, instead of hard zeroing on mismatch.
+    """
+    chunk_len = pred.shape[0]
+    num_windows = gt.shape[0] - chunk_len + 1
+    if num_windows <= 0:
+        zero = torch.tensor(0.0, device=pred.device)
+        return False, torch.tensor(0, device=pred.device), torch.tensor(float('inf'), device=pred.device), zero
 
     gt_windows = gt.unfold(0, chunk_len, 1).transpose(1, 2)
-    
-    # gt_windows = trajectory_deltas(gt_windows)
-    # pred = trajectory_deltas(pred)
 
     diffs = pred.unsqueeze(0) - gt_windows
+    if action_std is not None:
+        std = action_std.view(1, 1, -1).clamp(min=1e-6)
+        diffs = diffs / std
+
     errors = torch.norm(diffs, dim=2).mean(dim=1)
 
+    step_idx = int(step.item()) if isinstance(step, torch.Tensor) else int(step)
+    step_idx = max(0, min(step_idx, errors.shape[0] - 1))
+
+    step_error = errors[step_idx]
     match_idx = errors.argmin()
-    match_error = errors[step]
+    position_offset = torch.abs(match_idx - step_idx).float()
 
-    is_match = torch.abs(match_idx - step) <= 1
-    return is_match, match_idx, match_error
-    
+    action_reward = torch.exp(-step_error.clamp(max=10.0))
+    max_offset = max(chunk_len - 1, 1)
+    alignment_reward = torch.clamp(1.0 - position_offset / max_offset, min=0.0)
+    best_window_reward = torch.exp(-errors[match_idx].clamp(max=10.0))
 
-def batch_check_action_match(pred, gt, step):
+    reward = action_reward + 0.3 * alignment_reward + 0.2 * best_window_reward
+    is_match = position_offset <= match_tolerance
+    return is_match, match_idx, step_error, reward
+
+
+def batch_check_action_match(pred, gt, step, action_std=None, match_tolerance=2):
     """
     Args:
-        pred: [B, 8, 7]
-        gt: List of [T, 7]
+        pred: [B, chunk_len, action_dim]
+        gt: List of [T, action_dim]
+        step: List[int] or tensor of sampled trajectory indices
+        action_std: optional [action_dim] normalization stats for scale-invariant error
     Returns:
-        match_flags: [B] bool tensor
-        match_positions: [B] int tensor (-1 表示未匹配)
-        match_scores: [B] float tensor (最佳匹配的误差)
+        match_flags: [B] bool tensor (soft temporal alignment within tolerance)
+        reward: [B] float tensor, continuous in roughly [0, 1.5]
     """
     batch_size = pred.shape[0]
     device = pred.device
-    chunk_len = pred.shape[1]
-    
-    match_flags = torch.zeros(batch_size, dtype=torch.bool, device=device)
-    match_positions = torch.full((batch_size,), -1, dtype=torch.long, device=device)
-    match_scores = torch.full((batch_size,), float('inf'), device=device)
-    step = torch.tensor(step, device=device)
-    
-    for i in range(batch_size):
-        pred_seq = pred[i]  # [8, 7]
-        gt_seq = gt[i]  
-        step_i = step[i]    # [T_i, 7]
-        
-        is_match, match_idx, match_error = check_action_match(pred_seq, gt_seq, step_i)
-        
-        match_flags[i] = is_match
-        match_positions[i] = match_idx
-        match_scores[i] = match_error
 
-    # reward = torch.exp(-match_scores) * match_flags + torch.clamp(1 - torch.abs(match_positions - step) / (chunk_len - 2), min=0)
-    reward = torch.exp(-match_scores) * match_flags + match_flags.float()
-    
-    return match_flags, reward
+    match_flags = torch.zeros(batch_size, dtype=torch.bool, device=device)
+    rewards = torch.zeros(batch_size, dtype=torch.float32, device=device)
+    step = torch.tensor(step, device=device)
+
+    for i in range(batch_size):
+        is_match, _, _, reward = check_action_match(
+            pred[i],
+            gt[i],
+            step[i],
+            action_std=action_std,
+            match_tolerance=match_tolerance,
+        )
+        match_flags[i] = is_match
+        rewards[i] = reward
+
+    return match_flags, rewards
 
 
 class RobHFRollout(BaseRollout):
@@ -988,9 +1004,15 @@ class RobHFRollout(BaseRollout):
             task_descriptions = []
             device = torch.device('cuda')
 
+            action_norm_stats = self.module.norm_stats[self.config.unnorm_key]["action"]
+            action_std = torch.tensor(
+                action_norm_stats["std"], device=device, dtype=torch.float32
+            )
+
             for data in batch_data:
-                end_idx = len(data['full_image']) - n_samples - self.config.action_chunks_len - 1
-                step_idx = random.randint(0, end_idx) # random step
+                traj_len = len(data['actions'])
+                end_idx = max(0, traj_len - self.config.action_chunks_len - 1)
+                step_idx = random.randint(0, end_idx) if end_idx > 0 else 0
                 for i in range(n_samples):
                     input_steps.append(step_idx)
                     if self.config.num_images_in_input > 1:
@@ -1015,7 +1037,11 @@ class RobHFRollout(BaseRollout):
             actions = vla_output["action"]
 
             match_flags, match_rewards = batch_check_action_match(
-                torch.from_numpy(actions).to(device), gt_actions, input_steps)
+                torch.from_numpy(actions).to(device),
+                gt_actions,
+                input_steps,
+                action_std=action_std,
+            )
 
             output_batch = {
                 "responses": vla_output["responses"],
