@@ -238,6 +238,7 @@ algorithm:
   adv_params:
     verifier_gamma: ${algorithm.gamma}
     reward_model_gamma: ${algorithm.gamma}
+    grpo_min_std: 0.1  # floor for GRPO std normalization to avoid gradient blow-up
   kl_penalty: kl  # how to estimate kl divergence
   kl_ctrl:
     type: fixed

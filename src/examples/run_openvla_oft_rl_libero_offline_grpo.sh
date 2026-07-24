@@ -7,24 +7,33 @@ export TOKENIZERS_PARALLELISM="${TOKENIZERS_PARALLELISM:-true}"
 export MUJOCO_GL="${MUJOCO_GL:-egl}"
 export PYOPENGL_PLATFORM="${PYOPENGL_PLATFORM:-egl}"
 export LIBERO_CONFIG_PATH="${LIBERO_CONFIG_PATH:-$HOME/.libero}"
-export LIBERO_ROOT="${LIBERO_ROOT:/data2/wyn/datasets/libero/}"
-export PYTHONPATH="${LIBERO_ROOT}:${PYTHONPATH:-}"
+export LIBERO_DATASETS_ROOT="${LIBERO_DATASETS_ROOT:-/root/autodl-tmp/datasets/LIBERO}"
+export LIBERO_ROOT="${LIBERO_ROOT:-/root/2604-VLA_RL_offline/SimpleVLA_RL_Offline-main/LIBERO}"
+export PYTHONPATH="/root/2604-VLA_RL_offline/SimpleVLA_RL_Offline-main:${LIBERO_ROOT}:${PYTHONPATH:-}"
 export ROBOT_PLATFORM=LIBERO
+export RUNTIME_ENV_PATH="${RUNTIME_ENV_PATH:-src/.runtime_env.libero.json}"
 
 PROJECT_NAME="${PROJECT_NAME:-Offline-VLA-RL}"               # 项目名
-EXPERIMENT_NAME="${EXPERIMENT_NAME:-openvla_oft_libero_object_all_rl_2gpu_grpo}"    # 实验名
+EXPERIMENT_NAME="${EXPERIMENT_NAME:-openvla_oft_libero_10_rl_2gpu_grpo}"    # 实验名
 # For openvla-oft Libero-Long traj1 SFT or traj all SFT models can be find in https://huggingface.co/collections/Haozhan72/simplevla-rl-6833311430cd9df52aeb1f86
-SFT_MODEL_PATH="${SFT_MODEL_PATH:-/data2/wyn/models/Openvla-oft-SFT-libero-object-trajall}"   # 模型路径
-CKPT_PATH="${CKPT_PATH:-/data2/wyn/chkpt/2604-VLA_RL_offline}"              # ckpt保存路径
+SFT_MODEL_PATH="${SFT_MODEL_PATH:-/root/autodl-tmp/models/simplevla/Openvla-oft-SFT-libero10-trajall}"   # 模型路径
+CKPT_PATH="${CKPT_PATH:-/root/autodl-tmp/chkpt/2604-VLA_RL_offline}"              # ckpt保存路径
 # DATASET_NAME can be libero_10 (libero_Long), libero_90, libero_spatial, libero_object, libero_goal
-DATASET_NAME="${DATASET_NAME:-libero_object}"        # libero数据集选择
+DATASET_NAME="${DATASET_NAME:-libero_10}"        # libero数据集选择
 VLA_NAME="${VLA_NAME:-openvla-oft}"                  # 所依赖VLA模型名称
 NUM_GPUS="${NUM_GPUS:-2}"                            # 使用的GPU数量
 # If you want to use multi-node RL, set NUM_NODES accordingly.
 NUM_NODES="${NUM_NODES:-1}"                          # 使用的节点数量
 WANDB_MODE="${WANDB_MODE:-disabled}"                 # wandb模式，disabled表示不使用wandb
 ALIGN_PATH=".${ALIGN_PATH:-/align.json}"
-bash examples/overwrite_vla_ckpt_utils.sh $SFT_MODEL_PATH 
+
+# Configure LIBERO dataset/code paths before training.
+python3 scripts/setup_libero_config.py \
+    --datasets-root "$LIBERO_DATASETS_ROOT" \
+    --libero-repo "$LIBERO_ROOT" \
+    --config-path "$LIBERO_CONFIG_PATH"
+
+bash examples/overwrite_vla_ckpt_utils.sh $SFT_MODEL_PATH
 
 export TENSORBOARD_DIR="tensorboard_log/$PROJECT_NAME/$EXPERIMENT_NAME"
 
@@ -61,7 +70,7 @@ HYDRA_FULL_ERROR=1 python -u -m src.main_ppo \
     actor_rollout_ref.actor.num_images_in_input=1 \
     actor_rollout_ref.actor.traj_mini_batch_size=1 \
     actor_rollout_ref.model.enable_gradient_checkpointing=True \
-    actor_rollout_ref.model.use_remove_padding=True \
+    actor_rollout_ref.model.use_remove_padding=False \
     actor_rollout_ref.actor.entropy_coeff=0. \
     actor_rollout_ref.rollout.num_images_in_input=1 \
     actor_rollout_ref.rollout.use_proprio=False \

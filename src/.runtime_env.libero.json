@@ -9,7 +9,9 @@
     "MUJOCO_GL": "egl",
     "PYOPENGL_PLATFORM": "egl",
     "LIBERO_CONFIG_PATH": "/root/.libero",
-    "PYTHONPATH": "/root/autodl-tmp/LIBERO:"
+    "LIBERO_DATASETS_ROOT": "/root/autodl-tmp/datasets/LIBERO",
+    "LIBERO_ROOT": "/root/2604-VLA_RL_offline/SimpleVLA_RL_Offline-main/LIBERO",
+    "PYTHONPATH": "/root/2604-VLA_RL_offline/SimpleVLA_RL_Offline-main:/root/2604-VLA_RL_offline/SimpleVLA_RL_Offline-main/LIBERO:"
   },
   "excludes": [
     "*"

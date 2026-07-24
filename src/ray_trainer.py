@@ -168,9 +168,12 @@ def compute_advantage(data: DataProto, gamma, lam, adv_estimator, config):
         steps = torch.arange(response_length, device=data.batch['responses'].device)  # (traj_len,)
         steps_expanded = steps.unsqueeze(0).expand(data.batch['responses'].size(0), -1)
         response_mask = steps_expanded < finish_step.unsqueeze(1)  # (batch_size, traj_len)
-        advantages, returns = core_algos.compute_grpo_outcome_advantage(token_level_rewards=token_level_rewards,
-                                                                        eos_mask=response_mask,
-                                                                        index=index)
+        advantages, returns = core_algos.compute_grpo_outcome_advantage(
+            token_level_rewards=token_level_rewards,
+            eos_mask=response_mask,
+            index=index,
+            grpo_min_std=config.algorithm.adv_params.get('grpo_min_std', 0.1),
+        )
         data.batch['advantages'] = advantages
         data.batch['returns'] = returns
 
