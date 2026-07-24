@@ -114,6 +114,27 @@ bash copy_overwrite_robotwin2.sh <your_robotwin_path> <your_simplevlarl_path>
 
 ## Troubleshooting
 
+- **`ImportError: cannot import name 'EncoderDecoderCache' from 'transformers'`**  
+  Your `peft` version is too new for OpenVLA-OFT's pinned `transformers==4.40.x`. Fix:
+  ```bash
+  pip install peft==0.11.1
+  ```
+  Or run the bundled helper:
+  ```bash
+  bash scripts/fix_training_env.sh
+  ```
+
+- **`ModuleNotFoundError: No module named 'flash_attn'`**  
+  Either install Flash Attention:
+  ```bash
+  pip install packaging ninja
+  pip install flash-attn --no-build-isolation
+  ```
+  Or disable remove-padding in training:
+  ```bash
+  bash src/examples/run_openvla_oft_rl_libero_offline_grpo.sh actor_rollout_ref.model.use_remove_padding=False
+  ```
+
 - If you encounter issues with RoboTwin 2.0 installation, refer to the [RoboTwin documentation](https://robotwin-platform.github.io/doc/) or check their GitHub issues
 - All repositories (veRL, OpenVLA-OFT, RoboTwin) are recommended to clone at the same directory level as SimpleVLA-RL
 
